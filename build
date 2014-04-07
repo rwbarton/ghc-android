@@ -172,10 +172,9 @@ fi
 
 if ! [ -e "$GHC_STAGE0" ] ; then
     # Checkout GHC
-    git clone $MIRROR_OPT http://darcs.haskell.org/ghc.git/ "$GHC_STAGE0_SRC"
-    apply_patches 'ghc-fix-sync-all.patch' "$GHC_STAGE0_SRC"
+    git clone $MIRROR_OPT -b ghc-7.8 http://darcs.haskell.org/ghc.git/ "$GHC_STAGE0_SRC"
     pushd "$GHC_STAGE0_SRC" > /dev/null
-    ./sync-all --no-dph get $MIRROR_OPT
+    ./sync-all --no-dph get $MIRROR_OPT -b ghc-7.8
 
     # Setup build.mk
     cat > mk/build.mk <<EOF
@@ -195,10 +194,10 @@ fi
 
 if ! [ -d "$GHC_SRC" ] ; then
     # Checkout GHC
-    git clone $MIRROR_OPT http://darcs.haskell.org/ghc.git/ "$GHC_SRC"
+    git clone $MIRROR_OPT -b ghc-7.8 git://git.haskell.org/ghc.git/ "$GHC_SRC"
     apply_patches 'ghc-*' "$GHC_SRC"
     pushd "$GHC_SRC" > /dev/null
-    ./sync-all --no-dph get $MIRROR_OPT
+    ./sync-all --no-dph get $MIRROR_OPT -b ghc-7.8
 
     # Setup build.mk
     cat > mk/build.mk <<EOF
