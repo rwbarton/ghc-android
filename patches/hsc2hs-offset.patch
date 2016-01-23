@@ -12,13 +12,15 @@ diff --git a/CrossCodegen.hs b/CrossCodegen.hs
 index 7fbd20a..af44e64 100644
 --- a/CrossCodegen.hs
 +++ b/CrossCodegen.hs
-@@ -208,13 +208,13 @@ outputSpecial :: (String -> TestMonad ()) -> ZCursor Token -> TestMonad ()
+@@ -208,15 +208,15 @@ outputSpecial :: (String -> TestMonad ()) -> ZCursor Token -> TestMonad ()
  outputSpecial output (z@ZCursor {zCursor=Special pos@(SourcePos file line)  key value}) =
      case key of
         "const" -> outputConst value show
 -       "offset" -> outputConst ("offsetof(" ++ value ++ ")") (\i -> "(" ++ show i ++ ")")
 +       "offset" -> outputConst ("__builtin_offsetof(" ++ value ++ ")") (\i -> "(" ++ show i ++ ")")
         "size" -> outputConst ("sizeof(" ++ value ++ ")") (\i -> "(" ++ show i ++ ")")
+        "alignment" -> outputConst (alignment value)
+                                   (\i -> "(" ++ show i ++ ")")
 -       "peek" -> outputConst ("offsetof(" ++ value ++ ")")
 +       "peek" -> outputConst ("__builtin_offsetof(" ++ value ++ ")")
                               (\i -> "(\\hsc_ptr -> peekByteOff hsc_ptr " ++ show i ++ ")")
@@ -30,20 +32,21 @@ index 7fbd20a..af44e64 100644
                              (\i -> "(\\hsc_ptr -> hsc_ptr `plusPtr` " ++ show i ++ ")")
         "type" -> computeType z >>= output
         "enum" -> computeEnum z >>= output
-@@ -272,11 +272,11 @@ outValidityCheck :: Token -> Int -> String
+@@ -272,12 +272,12 @@ outValidityCheck :: Token -> Int -> String
  outValidityCheck s@(Special pos key value) uniq =
      case key of
         "const" -> checkValidConst value
 -       "offset" -> checkValidConst ("offsetof(" ++ value ++ ")")
 +       "offset" -> checkValidConst ("__builtin_offsetof(" ++ value ++ ")")
         "size" -> checkValidConst ("sizeof(" ++ value ++ ")")
+        "alignment" -> checkValidConst (alignment value)
 -       "peek" -> checkValidConst ("offsetof(" ++ value ++ ")")
 -       "poke" -> checkValidConst ("offsetof(" ++ value ++ ")")
 -       "ptr" -> checkValidConst ("offsetof(" ++ value ++ ")")
 +       "peek" -> checkValidConst ("__builtin_offsetof(" ++ value ++ ")")
 +       "poke" -> checkValidConst ("__builtin_offsetof(" ++ value ++ ")")
 +       "ptr" -> checkValidConst ("__builtin_offsetof(" ++ value ++ ")")
-        "type" -> checkValidType 
+        "type" -> checkValidType
         "enum" -> checkValidEnum
         _ -> outHeaderCProg' s
 -- 

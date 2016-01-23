@@ -6,7 +6,7 @@ index c7a7662..36bd8ca 100644
   , epollOut = EPOLLOUT
   , epollErr = EPOLLERR
   , epollHup = EPOLLHUP
-- , epollOneShot = EPOLLONESHOT              
+- , epollOneShot = EPOLLONESHOT
 + , epollOneShot = 0x40000000
   }
  

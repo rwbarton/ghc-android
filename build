@@ -172,9 +172,8 @@ fi
 
 if ! [ -e "$GHC_STAGE0" ] ; then
     # Checkout GHC
-    git clone $MIRROR_OPT -b ghc-7.8 http://darcs.haskell.org/ghc.git/ "$GHC_STAGE0_SRC"
+    git clone $MIRROR_OPT --recursive -b ghc-8.0 git://git.haskell.org/ghc.git "$GHC_STAGE0_SRC"
     pushd "$GHC_STAGE0_SRC" > /dev/null
-    ./sync-all --no-dph get $MIRROR_OPT -b ghc-7.8
 
     # Setup build.mk
     cat > mk/build.mk <<EOF
@@ -194,10 +193,9 @@ fi
 
 if ! [ -d "$GHC_SRC" ] ; then
     # Checkout GHC
-    git clone $MIRROR_OPT -b ghc-7.8 git://git.haskell.org/ghc.git/ "$GHC_SRC"
+    git clone $MIRROR_OPT --recursive -b ghc-8.0 git://git.haskell.org/ghc.git/ "$GHC_SRC"
     apply_patches 'ghc-*' "$GHC_SRC"
     pushd "$GHC_SRC" > /dev/null
-    ./sync-all --no-dph get $MIRROR_OPT -b ghc-7.8
 
     # Setup build.mk
     cat > mk/build.mk <<EOF
@@ -210,9 +208,10 @@ GhcHcOpts       = -Rghc-timing
 GhcLibHcOpts    = -O2
 GhcLibWays      = v
 HADDOCK_DOCS       = NO
-BUILD_DOCBOOK_HTML = NO
-BUILD_DOCBOOK_PS   = NO
-BUILD_DOCBOOK_PDF  = NO
+BUILD_SPHINX_HTML = NO
+BUILD_SPHINX_PS   = NO
+BUILD_SPHINX_PDF  = NO
+BUILD_MAN         = NO
 EOF
 
     # Update config.sub and config.guess
@@ -252,10 +251,6 @@ function check_install_gmp_constants() {
 }
 
 make $MAKEFLAGS || true # TMP hack, see http://hackage.haskell.org/trac/ghc/ticket/7490
-make $MAKEFLAGS || true # TMP hack, target mkGmpDerivedConstants fails on build host
-check_install_gmp_constants
-make $MAKEFLAGS || true # TMP hack, tries to execut inplace stage2
-make $MAKEFLAGS || true # TMP hack, one more for luck
 make install
 popd > /dev/null
 
