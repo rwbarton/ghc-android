@@ -15,6 +15,7 @@ if [ -z "$MIRROR_OPT" ] ; then
         MIRROR_OPT="--reference `pwd`/mirror.git"
     fi
 fi
+DESTDIR="/data/local/tmp"
 
 # Basic parameters
 NDK_RELEASE=${NDK_RELEASE:-r9b}
@@ -229,57 +230,16 @@ EOF
 
     # Configure
     perl boot
-    ./configure --enable-bootstrap-with-devel-snapshot --prefix="$GHC_PREFIX" --target=$NDK_TARGET --with-ghc=$GHC_STAGE0 --with-gcc=$NDK/bin/$NDK_TARGET-gcc
+    ./configure --enable-bootstrap-with-devel-snapshot --prefix="$DESTDIR" --target=$NDK_TARGET --with-ghc=$GHC_STAGE0 --with-gcc=$NDK/bin/$NDK_TARGET-gcc
     popd > /dev/null
 fi
 
 pushd "$GHC_SRC" > /dev/null
 
-function check_install_gmp_constants() {
-    GMPDCHDR="libraries/integer-gmp/mkGmpDerivedConstants/dist/GmpDerivedConstants.h"
-    if ! [ -e  "$GMPDCHDR" ] ; then
-        if [ -e "$BASEDIR/patches/gmp-$NDK_DESC-GmpDerivedConstants.h" ] ; then
-            cp -v "$BASEDIR/patches/gmp-$NDK_DESC-GmpDerivedConstants.h" "$GMPDCHDR"
-        else
-            echo \#\#\# Execute the following commands to generate a GmpDerivedConstants.h for your target, then run build again:
-            echo \#\#\# adb push ghc-$NDK_DESC/libraries/integer-gmp/cbits/mkGmpDerivedConstants /data/local
-            echo \#\#\# adb shell /data/local/mkGmpDerivedConstants \> $BASEDIR/patches/gmp-$NDK_DESC-GmpDerivedConstants.h
-            echo \#\#\# adb shell rm /data/local/mkGmpDerivedConstants
-            exit 1
-        fi
-    fi
-}
-
-make $MAKEFLAGS || true # TMP hack, see http://hackage.haskell.org/trac/ghc/ticket/7490
-make install
+make $MAKEFLAGS
+make STRIP_CMD=arm-linux-androideabi-strip DESTDIR=out install
+cp "$NDK_ADDON_PREFIX/lib/libgmp.a" out/"$DESTDIR"/lib/*/integer-gmp-*/
 popd > /dev/null
 
-# Write hsc2hs wrapper
-HSC2HS_TARGET=$(ls $GHC_PREFIX/bin/*-hsc2hs)
-echo \#/bin/bash > $HSC2HS_TARGET
-echo 'exec /usr/bin/hsc2hs --cross-compile "$@" --define=linux_android_HOST_OS=1' >> $HSC2HS_TARGET
-chmod +x $HSC2HS_TARGET
-
-# install a cabal that supports cross compilation
-cabal update
-cabal install Cabal cabal-install --bindir=$GHC_STAGE0_PREFIX/bin/
-
-# Write cabal wrapper
-echo \#/bin/bash > "$GHC_PREFIX/bin/$NDK_TARGET-cabal"
-echo NDK=$GHC_PREFIX >> "$GHC_PREFIX/bin/$NDK_TARGET-cabal"
-echo NDK_TARGET=$NDK_TARGET >> "$GHC_PREFIX/bin/$NDK_TARGET-cabal"
-echo NEW_CABAL=$GHC_STAGE0_PREFIX/bin/cabal >> "$GHC_PREFIX/bin/$NDK_TARGET-cabal"
-cat "$BASEDIR/patches/cabal-wrapper" >> "$GHC_PREFIX/bin/$NDK_TARGET-cabal"
-chmod +x "$GHC_PREFIX/bin/$NDK_TARGET-cabal"
-
-# Add target bindir links
-function bindir_link() {
-    [ -e $GHC_PREFIX/$NDK_TARGET/bin/$1 ] || \
-        (echo ln -s $GHC_PREFIX/bin/*-$1 $GHC_PREFIX/$NDK_TARGET/bin/$1 ;\
-        ln -s $GHC_PREFIX/bin/*-$1 $GHC_PREFIX/$NDK_TARGET/bin/$1)
-}
-bindir_link ghc
-bindir_link ghc-pkg
-bindir_link hp2ps
-bindir_link hsc2hs
-bindir_link cabal
+echo "It worked! Exiting."
+exit 0
