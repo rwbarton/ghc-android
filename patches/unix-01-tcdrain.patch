@@ -1,0 +1,100 @@
+From 866bc9f30b5ea8502ee4b8d9ee0e34a92e63a928 Mon Sep 17 00:00:00 2001
+From: Reid Barton <rwbarton@gmail.com>
+Date: Wed, 27 Jan 2016 15:26:12 -0500
+Subject: [PATCH 1/2] Provide tcdrain() if it is missing (as on some Android
+ versions)
+
+---
+ System/Posix/Terminal/Common.hsc |  2 +-
+ cbits/tcdrain.c                  | 29 +++++++++++++++++++++++++++++
+ configure.ac                     |  1 +
+ include/tcdrain.h                |  6 ++++++
+ unix.cabal                       |  1 +
+ 5 files changed, 38 insertions(+), 1 deletion(-)
+ create mode 100644 cbits/tcdrain.c
+ create mode 100644 include/tcdrain.h
+
+diff --git a/System/Posix/Terminal/Common.hsc b/System/Posix/Terminal/Common.hsc
+index 49418f5..a91a31c 100644
+--- a/System/Posix/Terminal/Common.hsc
++++ b/System/Posix/Terminal/Common.hsc
+@@ -411,7 +411,7 @@ foreign import capi unsafe "termios.h tcsendbreak"
+ drainOutput :: Fd -> IO ()
+ drainOutput (Fd fd) = throwErrnoIfMinus1_ "drainOutput" (c_tcdrain fd)
+ 
+-foreign import capi unsafe "termios.h tcdrain"
++foreign import ccall unsafe "tcdrain.h hsunix_tcdrain"
+   c_tcdrain :: CInt -> IO CInt
+ 
+ 
+diff --git a/cbits/tcdrain.c b/cbits/tcdrain.c
+new file mode 100644
+index 0000000..95ce45b
+--- /dev/null
++++ b/cbits/tcdrain.c
+@@ -0,0 +1,29 @@
++/* Provide tcdrain() if it is missing (as on some Android versions). */
++
++#include "HsUnixConfig.h"
++#ifdef HAVE_TCDRAIN
++
++#include <termios.h>
++int hsunix_tcdrain(int fd)
++{
++  return tcdrain(fd);
++}
++
++#else
++
++#include "ghcplatform.h"
++
++#ifdef linux_android_HOST_OS
++#include <sys/ioctl.h>
++
++int hsunix_tcdrain(int fd)
++{
++  /* POSIX says tcdrain is a cancellation point, so we should
++     technically set the cancelability type to asynchronous here. But
++     Android doesn't implement pthread_cancel anyways, so meh. */
++
++  return ioctl(fd, TCSBRK, 1);
++}
++#endif /* linux_android_HOST_OS */
++
++#endif /* HAVE_TCDRAIN */
+diff --git a/configure.ac b/configure.ac
+index 24ea3a5..4f6629c 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -39,6 +39,7 @@ AC_CHECK_FUNCS([setitimer])
+ AC_CHECK_FUNCS([readdir_r])
+ dnl not available on android so check for it
+ AC_CHECK_FUNCS([telldir seekdir])
++AC_CHECK_FUNCS([tcdrain])
+ 
+ dnl This is e.g. available as a GNU extension in glibc 2.11+
+ AC_CHECK_FUNCS([execvpe])
+diff --git a/include/tcdrain.h b/include/tcdrain.h
+new file mode 100644
+index 0000000..60943cd
+--- /dev/null
++++ b/include/tcdrain.h
+@@ -0,0 +1,6 @@
++#ifndef HSUNIX_TCDRAIN_H
++#define HSUNIX_TCDRAIN_H
++
++extern int hsunix_tcdrain(int fd);
++
++#endif
+diff --git a/unix.cabal b/unix.cabal
+index e4a2aee..26d951b 100644
+--- a/unix.cabal
++++ b/unix.cabal
+@@ -131,3 +131,4 @@ library
+         cbits/dirUtils.c
+         cbits/execvpe.c
+         cbits/ghcrts.c
++        cbits/tcdrain.c
+-- 
+2.6.2
+
