@@ -1,0 +1,14 @@
+diff --git a/compiler/ghci/Linker.hs b/compiler/ghci/Linker.hs
+index 982b4fc..8add73a 100644
+--- a/compiler/ghci/Linker.hs
++++ b/compiler/ghci/Linker.hs
+@@ -1351,6 +1351,9 @@ locateLib hsc_env is_hs dirs lib
+      os = platformOS platform
+ 
+ searchForLibUsingGcc :: DynFlags -> String -> [FilePath] -> IO (Maybe FilePath)
++searchForLibUsingGcc dflags _ _
++   -- We don't have gcc, or dynamic libraries for that matter.
++   | platformOS (targetPlatform dflags) == OSAndroid = return Nothing
+ searchForLibUsingGcc dflags so dirs = do
+    -- GCC does not seem to extend the library search path (using -L) when using
+    -- --print-file-name. So instead pass it a new base location.
