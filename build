@@ -199,7 +199,7 @@ if ! [ -d "$GHC_SRC" ] ; then
 
     # Setup build.mk
     cat > mk/build.mk <<EOF
-Stage1Only = YES
+Stage1Only = NO
 DYNAMIC_GHC_PROGRAMS = NO
 SRC_HC_OPTS     = -O -H64m
 GhcStage1HcOpts = -O2 -fasm
