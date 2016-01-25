@@ -1,0 +1,16 @@
+diff --git a/rts/AutoApply.h b/rts/AutoApply.h
+index 74af74b..edb2400 100644
+--- a/rts/AutoApply.h
++++ b/rts/AutoApply.h
+@@ -82,9 +82,9 @@
+     Sp(-1) = CCCS;                              \
+     Sp(-2) = stg_restore_cccs_info;             \
+     Sp_adj(-2);                                 \
+-    jump (target) [R1]
++    jump (target) [*]
+ #else
+-#define jump_SAVE_CCCS(target) jump (target) [R1]
++#define jump_SAVE_CCCS(target) jump (target) [*]
+ #endif
+ 
+ #endif /* APPLY_H */
