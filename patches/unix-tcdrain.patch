@@ -1,0 +1,25 @@
+diff --git a/cbits/tcdrain.c b/cbits/tcdrain.c
+new file mode 100644
+index 0000000..ddc607a
+--- /dev/null
++++ b/cbits/tcdrain.c
+@@ -0,0 +1,10 @@
++#ifdef linux_android_HOST_OS
++
++#include <sys/ioctl.h>
++
++int tcdrain(int fd)
++{
++  return ioctl(fd, TCSBRK, 1);
++}
++
++#endif
+diff --git a/unix.cabal b/unix.cabal
+index e4a2aee..26d951b 100644
+--- a/unix.cabal
++++ b/unix.cabal
+@@ -131,3 +131,4 @@ library
+         cbits/dirUtils.c
+         cbits/execvpe.c
+         cbits/ghcrts.c
++        cbits/tcdrain.c
