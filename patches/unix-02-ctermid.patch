@@ -1,0 +1,115 @@
+From 10b068202e51deb1707fbf609ff7c2fd49cb6d3c Mon Sep 17 00:00:00 2001
+From: Reid Barton <rwbarton@gmail.com>
+Date: Wed, 27 Jan 2016 15:40:28 -0500
+Subject: [PATCH 2/2] Provide ctermid() if it is missing (as on some Android
+ versions)
+
+---
+ System/Posix/Terminal.hsc            |  2 +-
+ System/Posix/Terminal/ByteString.hsc |  2 +-
+ cbits/ctermid.c                      | 29 +++++++++++++++++++++++++++++
+ configure.ac                         |  2 +-
+ include/ctermid.h                    |  6 ++++++
+ unix.cabal                           |  1 +
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+ create mode 100644 cbits/ctermid.c
+ create mode 100644 include/ctermid.h
+
+diff --git a/System/Posix/Terminal.hsc b/System/Posix/Terminal.hsc
+index c8335a6..db3e2ef 100644
+--- a/System/Posix/Terminal.hsc
++++ b/System/Posix/Terminal.hsc
+@@ -105,7 +105,7 @@ getControllingTerminalName = do
+   s <- throwErrnoIfNull "getControllingTerminalName" (c_ctermid nullPtr)
+   peekFilePath s
+ 
+-foreign import ccall unsafe "ctermid"
++foreign import ccall unsafe "ctermid.h hsunix_ctermid"
+   c_ctermid :: CString -> IO CString
+ 
+ -- | @getSlaveTerminalName@ calls @ptsname@ to obtain the name of the
+diff --git a/System/Posix/Terminal/ByteString.hsc b/System/Posix/Terminal/ByteString.hsc
+index fd44c85..b0e5397 100644
+--- a/System/Posix/Terminal/ByteString.hsc
++++ b/System/Posix/Terminal/ByteString.hsc
+@@ -114,7 +114,7 @@ getControllingTerminalName = do
+   s <- throwErrnoIfNull "getControllingTerminalName" (c_ctermid nullPtr)
+   peekFilePath s
+ 
+-foreign import ccall unsafe "ctermid"
++foreign import ccall unsafe "ctermid.h hsunix_ctermid"
+   c_ctermid :: CString -> IO CString
+ 
+ -- | @getSlaveTerminalName@ calls @ptsname@ to obtain the name of the
+diff --git a/cbits/ctermid.c b/cbits/ctermid.c
+new file mode 100644
+index 0000000..8022583
+--- /dev/null
++++ b/cbits/ctermid.c
+@@ -0,0 +1,29 @@
++/* Provide ctermid() if it is missing (as on some Android versions). */
++
++#include "HsUnixConfig.h"
++#ifdef HAVE_CTERMID
++
++#include <stdio.h>
++char *hsunix_ctermid(char *s)
++{
++  return ctermid(s);
++}
++
++#else
++
++#include "ghcplatform.h"
++
++#if defined(linux_HOST_OS) || defined(linux_android_HOST_OS)
++#include <string.h>
++
++char *hsunix_ctermid(char *s)
++{
++  static const char devtty[] = "/dev/tty";
++  if (s)
++    return strcpy(s, devtty);
++  else
++    return (char *)devtty;
++}
++#endif /* linux or linux_android */
++
++#endif /* HAVE_CTERMID */
+diff --git a/configure.ac b/configure.ac
+index 4f6629c..dedbed6 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -39,7 +39,7 @@ AC_CHECK_FUNCS([setitimer])
+ AC_CHECK_FUNCS([readdir_r])
+ dnl not available on android so check for it
+ AC_CHECK_FUNCS([telldir seekdir])
+-AC_CHECK_FUNCS([tcdrain])
++AC_CHECK_FUNCS([tcdrain ctermid])
+ 
+ dnl This is e.g. available as a GNU extension in glibc 2.11+
+ AC_CHECK_FUNCS([execvpe])
+diff --git a/include/ctermid.h b/include/ctermid.h
+new file mode 100644
+index 0000000..300e77b
+--- /dev/null
++++ b/include/ctermid.h
+@@ -0,0 +1,6 @@
++#ifndef HSUNIX_CTERMID_H
++#define HSUNIX_CTERMID_H
++
++extern char *hsunix_ctermid(char *s);
++
++#endif
+diff --git a/unix.cabal b/unix.cabal
+index 26d951b..21547ed 100644
+--- a/unix.cabal
++++ b/unix.cabal
+@@ -132,3 +132,4 @@ library
+         cbits/execvpe.c
+         cbits/ghcrts.c
+         cbits/tcdrain.c
++        cbits/ctermid.c
+-- 
+2.6.2
+
